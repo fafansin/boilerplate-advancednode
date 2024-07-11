@@ -3,16 +3,10 @@ require('dotenv').config();
 const express = require('express');
 const myDB = require('./connection');
 const fccTesting = require('./freeCodeCamp/fcctesting.js');
-<<<<<<< HEAD
-const { cookie } = require('express/lib/response.js');
-const session = require('express-session');
-const passport = require('passport');
-=======
 const session = require('express-session');
 const passport = require('passport');
 const { ObjectID } = require('mongodb');
 const LocalStrategy = require('passport-local');
->>>>>>> replay
 
 const app = express();
 
