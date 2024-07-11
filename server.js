@@ -3,9 +3,16 @@ require('dotenv').config();
 const express = require('express');
 const myDB = require('./connection');
 const fccTesting = require('./freeCodeCamp/fcctesting.js');
+<<<<<<< HEAD
 const { cookie } = require('express/lib/response.js');
 const session = require('express-session');
 const passport = require('passport');
+=======
+const session = require('express-session');
+const passport = require('passport');
+const { ObjectID } = require('mongodb');
+const LocalStrategy = require('passport-local');
+>>>>>>> replay
 
 const app = express();
 
@@ -27,9 +34,53 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 
-app.route('/').get((req, res) => {
-  res.render('index', {title:'Hello', message:'Please log in'});
-});
+app.set('view engine', 'pug');
+app.set('views', './views/pug');
+
+app.use(session({
+  secret: process.env.SESSION_SECRET,
+  resave: true,
+  saveUninitialized:true,
+  cookie: { secure: false}
+}))
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+myDB(async client => {
+  const myDataBase = await client.db('database').collection('users');
+
+  passport.use(new LocalStrategy((username, password, done) => {
+    myDataBase.findOne({username:username}, (err, user) => {
+      console.log(`User ${username} attempted to login.`);
+      if(err) return done(err);
+      if(!err) return done(null, false);
+      if(password !== user.password) return done(null, false);
+      return done(null, user);
+    })
+  }))
+  
+
+  app.route('/').get((req, res) => {
+    res.render('index', {
+      title:'Connected to Database', 
+      message:'Please log in'
+    });
+  });
+
+  passport.serializeUser((user, done) => {
+    done(null, user._id);
+  })
+  
+  passport.deserializeUser((id, done) => {
+    myDataBase.findOne({ _id: new ObjectID(id)}, (err, doc) => {
+      done(null, doc);
+    })
+  })
+
+
+})
+
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
