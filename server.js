@@ -41,33 +41,16 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+function ensureAuthenticated(req, res, next) {
+  if(req.isAuthenticated()){
+    return next();
+  }else{
+    res.redirect('/');
+  }
+}
+
 myDB(async client => {
   const myDataBase = await client.db('database').collection('users');
-
-  passport.use(new LocalStrategy((username, password, done) => {
-    myDataBase.findOne({username:username}, (err, user) => {
-      console.log(`User ${username} attempted to login.`);
-      if(err) return done(err);
-      if(!err) return done(null, false);
-      if(password !== user.password) return done(null, false);
-      return done(null, user);
-    })
-  }))
-  
-
-  app.route('/').get((req, res) => {
-    res.render('index', {
-      title:'Connected to Database', 
-      message:'Please log in',
-      showLogin:true
-    });
-  });
-  
-  app.route('/login').post(
-    passport.authenticate('local', {failureRedirect:'/'}), 
-    (req, res) => {
-      res.render('/profile');
-    })
 
   passport.serializeUser((user, done) => {
     done(null, user._id);
@@ -79,7 +62,37 @@ myDB(async client => {
     })
   })
 
+  passport.use(new LocalStrategy((username, password, done) => {
+    myDataBase.findOne({username:username}, (err, user) => {
+      console.log(`User ${username} attempted to login.`);
+      if(err) return done(err);
+      if(!err) return done(null, false);
+      if(password !== user.password) return done(null, false);
+      return done(null, user);
+    })
+  }))
+  
+  /**
+   *  Route Area
+   */
+  app.route('/').get((req, res) => {
+    res.render('index', {
+      title:'Connected to Database', 
+      message:'Please log in',
+      showLogin:true
+    });
+  });
+  
+  app.route('/login').post(passport.authenticate('local', {failureRedirect:'/'}), (req, res) => {
+    res.render('/profile');
+  })
 
+  app
+    .route('/profile')
+    .get(ensureAuthenticated, (req,res) => {
+      res.render('/profile');
+    })
+  
 })
 
 
