@@ -48,6 +48,12 @@ myDB(async client => {
     .get(ensureAuthenticated, (req, res) => {
       res.render('profile', {username:req.user.username});
     })
+  
+  app.route('/logout')
+    .get((req, res) => {
+      req.logout();
+      req.redirect('/');
+    })
 
   app.route('/')
     .get((req, res) => {
@@ -61,6 +67,11 @@ myDB(async client => {
   /**
    *  -- END of ROUTES --
    */
+  app.use((req, res, next) => {
+    res.status(404)
+      .type('text')
+      .send('Not Found');
+  })
   /**
    * Passport configuration
    */
