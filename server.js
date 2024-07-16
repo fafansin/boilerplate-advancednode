@@ -32,8 +32,38 @@ app.use(passport.session());
 
 // Connect to database and encompass everything
 myDB(async client => {
+
+  // DB Connection
   const myDataBase = await client.db('database').collection('users');
 
+  /** 
+   * Routes section
+   */
+  app.route('/login')
+    .post(passport.authenticate('local', {failureRedirect: '/'}), (req, res) => {
+      res.redirect('/profile');
+    })
+  
+  app.route('/profile')
+    .get(ensureAuthenticated, (req, res) => {
+      res.render('profile');
+    })
+
+  app.route('/')
+    .get((req, res) => {
+      res.render('index', {
+        title:'Connected to Database', 
+        message:'Please log in',
+        showLogin: true
+      });
+  
+  });
+  /**
+   *  -- END of ROUTES --
+   */
+  /**
+   * Passport configuration
+   */
   passport.use(new LocalStrategy((username, password, done) => {
     myDataBase.findOne({ username: username}, (err, user) => {
       console.log(`User ${username} attempted to login.`);
@@ -43,25 +73,6 @@ myDB(async client => {
       return done(null, user);
     })
   }))
-
-  app.route('/login')
-    .post(passport.authenticate('local', {failureRedirect: '/'}), (req, res) => {
-      res.redirect('/profile');
-    })
-  
-  app.route('/profile')
-    .get((req, res) => {
-      res.render('profile');
-    })
-
-  app.route('/').get((req, res) => {
-    res.render('index', {
-      title:'Connected to Database', 
-      message:'Please log in',
-      showLogin: true
-    });
-  });
-
   passport.serializeUser((user, done) => {
     done(null, user._id);
   })
@@ -77,6 +88,16 @@ myDB(async client => {
   })
 })
 
+/**
+ * Custom Middleware
+ */
+function ensureAuthenticated(req, res, next){
+  if(req.isAuthenticated()) {
+    return next();
+  }else{
+    res.redirect('/');
+  }
+}
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
